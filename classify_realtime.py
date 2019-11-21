@@ -12,18 +12,29 @@ import time
 print("[INFO] loading network...")
 model = load_model("model")
 lb = pickle.loads(open("labelbin", "rb").read())
-L = [15, 30, 45, 60, 75, 90, 120]
+L = [15, 30, 45, 60, 75, 90,105, 120,135,150]
 history=[]
-
+print(lb.classes_)
 def get_prob(image):
 	image = cv2.resize(image, (96, 96))
 	image = image.astype("float") / 255.0
 	image = img_to_array(image)
 	image = np.expand_dims(image, axis=0)
 	rounded_prob = [round(p, 3) for p in model.predict(image)[0]]
-	rounded_prob_new = rounded_prob[1:]
-	rounded_prob_new.append(rounded_prob[0])
-	p = np.array(rounded_prob_new)
+
+
+	classes_text=lb.classes_
+	classes=[int(t) for t in classes_text]
+	sorted_classes=[t for t in classes]
+	sorted_classes.sort()
+	ind =[sorted_classes.index(t) for t in classes]
+	rounded_prob_sorted=[]
+	for i,item in enumerate(rounded_prob): 
+		print(rounded_prob[i])
+		print(item)
+		rounded_prob_sorted.insert(ind[i],item)
+
+	p = np.array(rounded_prob_sorted)
 	p[p < 0.1] = 0
 	p = [a/sum(p) for a in p]
 	predicted_distance = sum(np.multiply(L, p))
