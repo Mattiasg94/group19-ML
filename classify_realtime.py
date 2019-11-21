@@ -16,20 +16,22 @@ L = [15, 30, 45, 60, 75, 90, 120]
 history=[]
 
 def get_prob(image):
-    image = cv2.resize(image, (96, 96))
-    image = image.astype("float") / 255.0
-    image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)
-    rounded_prob = [round(p, 3) for p in model.predict(image)[0]]
-    rounded_prob_new = rounded_prob[1:]
-    rounded_prob_new.append(rounded_prob[0])
-    p = np.array(rounded_prob_new)
-    p[p < 0.1] = 0
-    p = [a/sum(p) for a in p]
-    predicted_distance = sum(np.multiply(L, p))
-    predicted_distance = str(predicted_distance)
-
-    return predicted_distance
+	image = cv2.resize(image, (96, 96))
+	image = image.astype("float") / 255.0
+	image = img_to_array(image)
+	image = np.expand_dims(image, axis=0)
+	rounded_prob = [round(p, 3) for p in model.predict(image)[0]]
+	rounded_prob_new = rounded_prob[1:]
+	rounded_prob_new.append(rounded_prob[0])
+	p = np.array(rounded_prob_new)
+	p[p < 0.1] = 0
+	p = [a/sum(p) for a in p]
+	predicted_distance = sum(np.multiply(L, p))
+	if len(history)==5:
+		history.pop(0)
+	history.append(predicted_distance)
+	predicted_distance_avrage=sum(history)/5
+	return predicted_distance_avrage
 
 
 cap = cv2.VideoCapture('testvid.mp4')
@@ -40,7 +42,7 @@ while(cap.isOpened()):
     ret, frame = cap.read()
     if ret == True:
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(frame, predicted_distance,
+        cv2.putText(frame, str(predicted_distance),
                     (10, 25), font, 0.7, (0, 255, 0), 2)
         cv2.imshow('Frame', frame)
         key = cv2.waitKey(1)

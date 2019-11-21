@@ -30,7 +30,7 @@ class SmallerVGGNet:
 		model.add(Activation("relu"))
 		model.add(BatchNormalization(axis=chanDim))
 		model.add(MaxPooling2D(pool_size=(3, 3)))
-		model.add(Dropout(0.25))
+		model.add(Dropout(0.4))
 
 		# (CONV => RELU) * 2 => POOL
 		model.add(Conv2D(64, (3, 3), padding="same"))
@@ -40,7 +40,7 @@ class SmallerVGGNet:
 		model.add(Activation("relu"))
 		model.add(BatchNormalization(axis=chanDim))
 		model.add(MaxPooling2D(pool_size=(2, 2)))
-		model.add(Dropout(0.25))
+		model.add(Dropout(0.4))
 
 		# (CONV => RELU) * 2 => POOL
 		model.add(Conv2D(128, (3, 3), padding="same"))
@@ -50,7 +50,7 @@ class SmallerVGGNet:
 		model.add(Activation("relu"))
 		model.add(BatchNormalization(axis=chanDim))
 		model.add(MaxPooling2D(pool_size=(2, 2)))
-		model.add(Dropout(0.25))
+		model.add(Dropout(0.4))
 
 		# first (and only) set of FC => RELU layers
 		model.add(Flatten())

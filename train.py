@@ -23,7 +23,7 @@ import os
 
 # initialize the number of epochs to train for, initial learning rate,
 # batch size, and image dimensions
-EPOCHS = 30 #100
+EPOCHS = 7 #100
 INIT_LR = 1e-3
 BS = 20 #32
 IMAGE_DIMS = (96, 96, 3)
@@ -44,6 +44,8 @@ for imagePath in imagePaths:
 	image = cv2.imread(imagePath)
 	image = cv2.resize(image, (IMAGE_DIMS[1], IMAGE_DIMS[0]))
 	image = img_to_array(image)
+	#image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+	#image = cv2.GaussianBlur(image,(13,13),0)
 	data.append(image)
  
 	# extract the class label from the image path and update the
@@ -89,7 +91,7 @@ H = model.fit_generator(
 
 # save the model to disk
 print("[INFO] serializing network...")
-model.save('model')
+model.save('model-nogrey')
 
 
 
@@ -97,16 +99,25 @@ model.save('model')
 plt.style.use("ggplot")
 plt.figure()
 N = EPOCHS
-plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
-plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
 plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
 plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
-plt.title("Training Loss and Accuracy")
+plt.title("Accuracy")
 plt.xlabel("Epoch #")
-plt.ylabel("Loss/Accuracy")
+plt.ylabel("Accuracy %")
 plt.legend(loc="upper left")
-plt.savefig("plot.png")
+plt.savefig("plot-acc-blur.png")
 
+# plot the training loss and accuracy
+plt.style.use("ggplot")
+plt.figure()
+N = EPOCHS
+plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
+plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
+plt.title("Loss")
+plt.xlabel("Epoch #")
+plt.ylabel("Loss")
+plt.legend(loc="upper left")
+plt.savefig("plot-loss-blur.png")
 
 
 # save the label binarizer to disk
