@@ -11,7 +11,8 @@ import numpy as np
 from imutils import paths
 import matplotlib.pyplot as plt
 from pyimagesearch.angle_net import Angle_Net
-from pyimagesearch.distance_net import Distance_Net
+from pyimagesearch.distance_net import Distance_Net 
+from pyimagesearch.classify_net import Classify_Net
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelBinarizer
 from keras.preprocessing.image import img_to_array
@@ -20,17 +21,24 @@ from keras.preprocessing.image import ImageDataGenerator
 import matplotlib
 matplotlib.use("Agg")
 
-
-EPOCHS = 10
-INIT_LR = 1e-3
-BS = 100
-BS_aug=BS
+EPOCHS = 15
+INIT_LR = 1e-4     
+BS = 250
+BS_aug = BS
 IMAGE_DIMS = (96, 96, 3)
 data = []
 labels = []
 dataset_folder = "dataset_angle"
 #dataset_folder='dataset_distance'
-sufix = 'angle' if 'angle' in dataset_folder else 'dist'
+#dataset_folder='dataset_classify' 
+
+if 'angle' in dataset_folder:
+    sufix = 'angle'
+elif 'distance' in dataset_folder:
+    sufix='dist'
+elif 'classify' in dataset_folder:
+    sufix='classify'
+print('[info]',sufix)
 # grab the image paths and randomly shuffle them
 print("[INFO] loading images...")
 imagePaths = sorted(list(paths.list_images(dataset_folder)))
@@ -49,7 +57,6 @@ for imagePath in imagePaths:
     #image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     #image = cv2.GaussianBlur(image,(13,13),0)
     data.append(image)
-
     # extract the class label from the image path and update the
     # labels list
     label = imagePath.split(os.path.sep)[-2]
@@ -69,23 +76,32 @@ labels = lb.fit_transform(labels)
 # the data for training and the remaining 20% for testing
 (trainX, testX, trainY, testY) = train_test_split(data,
                                                   labels, test_size=0.2, random_state=42)
-horizontal_flip=False if sufix=='angle' else True
+horizontal_flip = False if sufix == 'angle' else True
+print('[info]:',horizontal_flip)
 # construct the image generator for data augmentation
 aug = ImageDataGenerator(rotation_range=2, width_shift_range=0.1,
                          height_shift_range=0.1, shear_range=0.2,
-                         horizontal_flip=horizontal_flip, fill_mode="nearest",
-						 brightness_range=[0.2,1.8])
+                         fill_mode="nearest",horizontal_flip=horizontal_flip,)
+                         #brightness_range=[0.6, 1.4])
 
 # initialize the model
 print("[INFO] compiling model...")
 if sufix == 'angle':
     model = Angle_Net.build(width=IMAGE_DIMS[1], height=IMAGE_DIMS[0],
-                                      depth=IMAGE_DIMS[2], classes=len(lb.classes_))
+                            depth=IMAGE_DIMS[2], classes=len(lb.classes_))
+elif sufix == 'classify':
+    model = Classify_Net.build(width=IMAGE_DIMS[1], height=IMAGE_DIMS[0],
+                            depth=IMAGE_DIMS[2], classes=len(lb.classes_))                   
 else:
     model = Distance_Net.build(width=IMAGE_DIMS[1], height=IMAGE_DIMS[0],
-                                         depth=IMAGE_DIMS[2], classes=len(lb.classes_))
+                               depth=IMAGE_DIMS[2], classes=len(lb.classes_))
+
 opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
-model.compile(loss="categorical_crossentropy", optimizer=opt,
+if sufix=='classify':
+    loss='binary_crossentropy'
+else:
+    loss='categorical_crossentropy'
+model.compile(loss=loss, optimizer=opt,
               metrics=["accuracy"])
 
 # train the network
@@ -111,7 +127,7 @@ plt.title("Accuracy")
 plt.xlabel("Epoch #")
 plt.ylabel("Accuracy %")
 plt.legend(loc="upper left")
-plt.savefig('plot-acc-'+sufix+'.png')
+plt.savefig(r'plots\plot-acc-'+sufix+'.png')
 
 # plot the training loss and accuracy
 plt.style.use("ggplot")
@@ -123,7 +139,7 @@ plt.title("Loss")
 plt.xlabel("Epoch #")
 plt.ylabel("Loss")
 plt.legend(loc="upper left")
-plt.savefig('plot-loss-'+sufix+'.png')
+plt.savefig(r'plots\plot-loss-'+sufix+'.png')
 
 
 # save the label binarizer to disk

@@ -4,14 +4,14 @@ import numpy as np
 import argparse
 import imutils
 import pickle
-import cv2
+from cv2 import cv2
 import os
-from parameters import IMAGE_DIMS
+
 # load the trained convolutional neural network and the label
 # binarizer
-L=[15,30,45,60,75,90,120]
+L=[15,30,45,60,75,90,105,120,135,150]
 print("[INFO] loading network...")
-model = load_model("model")
+model = load_model("model-dist")
 lb = pickle.loads(open("labelbin", "rb").read())
 filelist = [f for f in os.listdir('test_images')]
 
@@ -20,7 +20,7 @@ for filename in filelist:
 	output = image.copy()
 	
 	# pre-process the image for classification
-	image = cv2.resize(image, (IMAGE_DIMS[0], IMAGE_DIMS[1]))
+	image = cv2.resize(image, (96, 96))
 	image = image.astype("float") / 255.0
 	image = img_to_array(image)
 	image = np.expand_dims(image, axis=0)

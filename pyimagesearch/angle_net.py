@@ -25,36 +25,36 @@ class Angle_Net:
 			chanDim = 1
 
 		# CONV => RELU => POOL
-		model.add(Conv2D(32, (40, 40),strides=(5, 5), padding="same",
+		model.add(Conv2D(40, (38, 38),strides=(6,6), padding="same",
 			input_shape=inputShape))
 		model.add(Activation("relu"))
 		model.add(BatchNormalization(axis=chanDim))
 		model.add(MaxPooling2D(pool_size=(3, 3)))
 		model.add(Dropout(0.25))
 
-		# (CONV => RELU) * 2 => POOL
-		model.add(Conv2D(64, (30, 30), padding="same"))
-		model.add(Activation("relu"))
-		model.add(BatchNormalization(axis=chanDim))
-		model.add(MaxPooling2D(pool_size=(2, 2)))
-		model.add(Dropout(0.25))
-
-		# (CONV => RELU) * 2 => POOL
-		model.add(Conv2D(128, (20, 20), padding="same"))
-		model.add(Activation("relu"))
-		# model.add(BatchNormalization(axis=chanDim))
-		# model.add(Conv2D(128, (3, 3), padding="same"))
+		# # (CONV => RELU) * 2 => POOL
+		# model.add(Conv2D(32, (20, 20),strides=(4, 4), padding="same"))
 		# model.add(Activation("relu"))
-		model.add(BatchNormalization(axis=chanDim))
-		model.add(MaxPooling2D(pool_size=(2, 2)))
-		model.add(Dropout(0.25))
+		# model.add(BatchNormalization(axis=chanDim))
+		# model.add(MaxPooling2D(pool_size=(2, 2)))
+		#model.add(Dropout(0.25))
+
+		# # #(CONV => RELU) * 2 => POOL
+		# model.add(Conv2D(60, (20, 20),strides=(3, 3), padding="same"))
+		# model.add(Activation("relu"))
+		# model.add(BatchNormalization(axis=chanDim))
+		# # model.add(Conv2D(128, (3, 3), padding="same"))
+		# # model.add(Activation("relu"))
+		# model.add(BatchNormalization(axis=chanDim))
+		#model.add(MaxPooling2D(pool_size=(2, 2)))
+		#model.add(Dropout(0.25))
 
 		# first (and only) set of FC => RELU layers
 		model.add(Flatten())
 		model.add(Dense(1024))
 		model.add(Activation("relu"))
 		model.add(BatchNormalization())
-		#model.add(Dropout(0.5))
+		model.add(Dropout(0.5))
 
 		# softmax classifier
 		model.add(Dense(classes))
