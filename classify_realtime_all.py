@@ -8,7 +8,7 @@ import os
 import time
 from cv2 import cv2
 import matplotlib.pyplot as plt
-
+from controller import P_controller
 # load the trained convolutional neural network and the label
 # binarizer
 print("[INFO] loading network...")
@@ -17,7 +17,7 @@ print("[INFO] loading network...")
 lpf_alpha = 0.05
 history_length = 50  # store predicted values for lp filter
 prob_is_station_threshold = 0.8
-vid_file=r'test_images_vids\look_for_station.mp4'
+vid_file=r'test_images_vids\testvid_angle.mp4'
 # !-- SETUP END---!
 
 angle_model = load_model("model-angle")
@@ -28,7 +28,7 @@ classify_model = load_model("model-classify")
 classify_lb = pickle.loads(open("labelbin-classify", "rb").read())
 
 classes_dist = [15, 30, 45, 60, 75, 90, 105, 120, 135, 150]
-classes_angle = [-33.75, -22.5, -11.25, 0, 11.25, 22.5, 33.75]
+classes_angle = [-45,-33.75, -22.5, -11.25, 0, 11.25, 22.5, 33.75,45]
 
 nets = ['angle', 'distance']
 history_dist=[]
@@ -40,6 +40,8 @@ angle_raw_lst=[]
 dist_lst=[]
 dist_raw_lst=[]
 prob_station_lst=[]
+states_lst=np.array([[0],[0]])
+dstates_lst=np.array([[0],[0]])
 def lpf(history, alpha):
     y = []
     yk = history[0]
@@ -96,8 +98,9 @@ def get_probs(image):
         for i, item in enumerate(rounded_prob):
             rounded_prob_sorted.insert(ind[i], item)
         p = np.array(rounded_prob_sorted)
-        # remove low probabileties and normalize
-        p[p < 0.1] = 0
+        # select only 2 biggest probs
+        small_probs = sorted(p)[0:(len(p)-2)]
+        p = [Cls if Cls not in small_probs else 0 for Cls in p]
         p = [item/sum(p) for item in p]
         if net == 'angle':
             predicted_agl = handle_outliners(classes_angle, p, history_agl,'angle')
@@ -107,33 +110,40 @@ def get_probs(image):
     return int(round(predicted_agl)), int(round(predicted_dist)), round(prob_is_station, 2)
 
 
-def get_xy(predicted_agl_avrage, predicted_dist_avrage):
-    x = np.sin(np.deg2rad(predicted_agl_avrage))*predicted_dist_avrage
-    y =np.cos(np.deg2rad(predicted_agl_avrage))*predicted_dist_avrage
+def get_xy(predicted_agl, predicted_dist):
+    x = np.sin(np.deg2rad(predicted_agl))*predicted_dist
+    y =np.cos(np.deg2rad(predicted_agl))*predicted_dist
     return round(x), round(y)
 
-
+T=[]
+p=0
 cap = cv2.VideoCapture(vid_file)
 ret, frame = cap.read()
 while(cap.isOpened()):
-    time.sleep(0.1)
-    predicted_agl_avrage, predicted_dist_avrage, prob_is_station = get_probs(
+    #time.sleep(0.1)
+    predicted_agl, predicted_dist, prob_is_station = get_probs(
         frame)
-    if (predicted_agl_avrage or predicted_dist_avrage) == None:
-        predicted_agl_avrage = predicted_dist_avrage =x = y='None'
+    if (predicted_agl or predicted_dist) == None:
+        predicted_agl = predicted_dist =x = y='None'
     else:
-        x, y = get_xy(predicted_agl_avrage, predicted_dist_avrage)
+        x, y = get_xy(predicted_agl, predicted_dist)
         X.append(x)
         Y.append(y)
-        angle_lst.append(predicted_agl_avrage)
-        dist_lst.append(predicted_dist_avrage)
+        angle_lst.append(predicted_agl)
+        dist_lst.append(predicted_dist)
         prob_station_lst.append(prob_is_station)
+        states,dstates=P_controller(predicted_dist,predicted_agl,prob_is_station,states_lst)
+        states_lst=np.append(states_lst,states,axis=1)
+        dstates_lst=np.append(dstates_lst,dstates,axis=1)
+        
+        T.append(p)
+        p=p+1
     ret, frame = cap.read()
     if ret == True:
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(frame, 'Dist: '+str(predicted_dist_avrage),
+        cv2.putText(frame, 'Dist: '+str(predicted_dist),
                     (10, 25), font, 0.7, (0, 255, 0), 2)
-        cv2.putText(frame, 'Angle: '+str(predicted_agl_avrage),
+        cv2.putText(frame, 'Angle: '+str(predicted_agl),
                     (150, 25), font, 0.7, (0, 255, 0), 2)
         cv2.putText(frame, 'X: '+str(x)+' Y: '+str(y),
                     (300, 25), font, 0.7, (0, 255, 0), 2)
@@ -142,7 +152,7 @@ while(cap.isOpened()):
         cv2.imshow('Frame', frame)
         key = cv2.waitKey(1)
         if key == 27:
-            break
+            break     
     else:
         break
 cap.release()
@@ -183,3 +193,27 @@ plt.xlabel("xx")
 plt.ylabel("xx")
 plt.legend(loc="upper left")
 plt.savefig(r'plots\classify_plots\distances.png')
+
+
+# plot controller states
+plt.style.use("ggplot")
+plt.figure()
+plt.plot(states_lst[0,:],label='d')
+plt.plot(states_lst[1,:],label='theta')
+plt.title("Controller states")
+plt.xlabel("time t="+str(len(T)))
+plt.ylabel("distance/angle")
+plt.legend(loc="upper left")
+plt.savefig(r'plots\classify_plots\states.png')
+
+
+# plot controller states
+plt.style.use("ggplot")
+plt.figure()
+plt.plot(dstates_lst[0,:],label='v_d')
+plt.plot(dstates_lst[1,:],label='v_theta')
+plt.title("Controller velecites")
+plt.xlabel("time t="+str(len(T)))
+plt.ylabel("v_distance/v_angle")
+plt.legend(loc="upper left")
+plt.savefig(r'plots\classify_plots\dstates.png')
